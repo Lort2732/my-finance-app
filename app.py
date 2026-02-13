@@ -14,20 +14,14 @@ def add_bg_from_url():
              background-attachment: fixed;
              background-size: cover;
          }}
-
-         /* Делаем основной контент полупрозрачным для красоты */
          [data-testid="stVerticalBlock"] > div:has(div.stMetric) {{
              background: rgba(255, 255, 255, 0.85);
              padding: 20px;
              border-radius: 15px;
          }}
-         
-         /* Стиль для боковой панели */
          [data-testid="stSidebar"] {{
              background-color: rgba(255, 255, 255, 0.9);
          }}
-
-         /* Заголовки делаем четче */
          h1, h2, h3 {{
              color: #1E1E1E;
              background: rgba(255, 255, 255, 0.7);
@@ -37,14 +31,13 @@ def add_bg_from_url():
          }}
          </style>
          """,
-         unsafe_allow_stdio=False,
          unsafe_allow_html=True
      )
 
 st.set_page_config(page_title="City Budget Tracker", page_icon="🏙️", layout="wide")
 add_bg_from_url()
 
-# --- БЛОК РАБОТЫ С ПОЛЬЗОВАТЕЛЯМИ (из прошлого кода) ---
+# --- ЛОГИКА ПОЛЬЗОВАТЕЛЕЙ ---
 USER_DB = "users_credentials.csv"
 
 def load_users():
@@ -71,7 +64,6 @@ if 'authenticated' not in st.session_state:
 if not st.session_state.authenticated:
     st.title("🏙️ Мій Бюджет у Великому Місті")
     tab1, tab2 = st.tabs(["🔑 Вхід", "📝 Реєстрація"])
-    
     with tab1:
         with st.form("login_form"):
             l_login = st.text_input("Логін").strip().lower()
@@ -82,7 +74,6 @@ if not st.session_state.authenticated:
                     st.session_state.user_login = l_login
                     st.rerun()
                 else: st.error("Помилка входу")
-                    
     with tab2:
         with st.form("reg_form"):
             r_login = st.text_input("Новий логін").strip().lower()
@@ -93,7 +84,7 @@ if not st.session_state.authenticated:
                     else: st.error("Логін зайнятий")
     st.stop()
 
-# --- РАБОТА С ДАННЫМИ ---
+# --- ДАННЫЕ И ИНТЕРФЕЙС ---
 USER_FILE = f"expenses_{st.session_state.user_login}.csv"
 if 'df' not in st.session_state:
     if os.path.exists(USER_FILE):
@@ -101,7 +92,6 @@ if 'df' not in st.session_state:
     else:
         st.session_state.df = pd.DataFrame(columns=["Дата", "Назва", "Сума", "Категорія"])
 
-# --- ИНТЕРФЕЙС ПОСЛЕ ВХОДА ---
 st.sidebar.markdown(f"### 👤 {st.session_state.user_login.capitalize()}")
 if st.sidebar.button("Вийти"):
     st.session_state.authenticated = False
@@ -121,15 +111,13 @@ with st.sidebar:
             st.session_state.df.to_csv(USER_FILE, index=False, encoding='utf-8-sig')
             st.rerun()
 
-# Метрики и Графики
 df = st.session_state.df
 if not df.empty:
     st.metric("Загальний підсумок", f"{df['Сума'].sum():,.2f} грн")
     c1, c2 = st.columns([1.5, 1])
-    with c1:
-        st.dataframe(df, use_container_width=True, hide_index=True)
+    with c1: st.dataframe(df, use_container_width=True, hide_index=True)
     with c2:
-        fig = px.pie(df, values='Сума', names='Категорія', hole=0.4, title="Розподіл витрат")
+        fig = px.pie(df, values='Сума', names='Категорія', hole=0.4)
         st.plotly_chart(fig, use_container_width=True)
 else:
-    st.info("Ваш міський щоденник порожній. Час додати першу витрату!")
+    st.info("Поки що порожньо.")
