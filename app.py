@@ -90,25 +90,42 @@ if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
     st.session_state.user_login = None
 
+# --- ЭКРАН ВХОДА (КОМПАКТНЫЙ) ---
 if not st.session_state.authenticated:
-    st.title("🏙️ FINANCE PRO")
-    t1, t2 = st.tabs(["ВХІД", "РЕЄСТРАЦІЯ"])
-    with t1:
-        with st.form("l"):
-            l_login = st.text_input("Логін").strip().lower()
-            l_pass = st.text_input("Пароль", type="password")
-            if st.form_submit_button("УВІЙТИ"):
-                if any(u['login'] == l_login and str(u['password']) == str(l_pass) for u in load_users()):
-                    st.session_state.authenticated, st.session_state.user_login = True, l_login
-                    st.rerun()
-                else: st.error("Помилка")
-    with t2:
-        with st.form("r"):
-            r_login, r_pass = st.text_input("Логін"), st.text_input("Пароль", type="password")
-            if st.form_submit_button("СТВОРИТИ"):
-                if r_login and r_pass:
-                    if save_user(r_login.strip().lower(), r_pass): st.success("ОК")
-                    else: st.error("Зайнято")
+    # Создаем три колонки: боковые пустые, центральная для формы
+    col_left, col_mid, col_right = st.columns([1, 1.2, 1])
+    
+    with col_mid:
+        st.markdown("<h1 style='text-align: center;'>🏙️ FINANCE PRO</h1>", unsafe_allow_html=True)
+        st.write("") # Отступ
+        
+        t1, t2 = st.tabs(["🔐 ВХІД", "📝 РЕЄСТРАЦІЯ"])
+        
+        with t1:
+            with st.form("l_form"):
+                l_login = st.text_input("Логін").strip().lower()
+                l_pass = st.text_input("Пароль", type="password")
+                submit_l = st.form_submit_button("УВІЙТИ")
+                if submit_l:
+                    if any(u['login'] == l_login and str(u['password']) == str(l_pass) for u in load_users()):
+                        st.session_state.authenticated, st.session_state.user_login = True, l_login
+                        st.rerun()
+                    else: 
+                        st.error("Помилка входу")
+        
+        with t2:
+            with st.form("r_form"):
+                r_login = st.text_input("Придумайте логін")
+                r_pass = st.text_input("Придумайте пароль", type="password")
+                submit_r = st.form_submit_button("СТВОРИТИ АКАУНТ")
+                if submit_r:
+                    if r_login and r_pass:
+                        if save_user(r_login.strip().lower(), r_pass): 
+                            st.success("Акаунт створено! Тепер увійдіть.")
+                        else: 
+                            st.error("Цей логін вже зайнятий")
+                    else:
+                        st.warning("Заповніть усі поля")
     st.stop()
 
 # --- ОСНОВНОЙ ФУНКЦИОНАЛ ---
@@ -185,3 +202,4 @@ if not df.empty:
         st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("Ваш гаманець порожній. Час додати першу покупку!")
+
