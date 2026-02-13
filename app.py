@@ -4,7 +4,7 @@ import plotly.express as px
 import os
 from datetime import datetime
 
-# 1. ОФОРМЛЕНИЕ И СТИЛИ 🎨
+# 1. Оформление интерфейса (Neon Green & Dark Mode) 🎨
 def apply_style():
     st.markdown("""
         <style>
@@ -40,7 +40,7 @@ def apply_style():
 st.set_page_config(page_title="Finance Neon Pro", layout="wide")
 apply_style()
 
-# 2. УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ 🔐
+# 2. Логика пользователей 🔐
 USER_DB = "users_credentials.csv"
 def get_users():
     if os.path.exists(USER_DB):
@@ -56,98 +56,4 @@ def save_user(login, password):
     return True
 
 if 'auth' not in st.session_state:
-    st.session_state.auth = False
-    st.session_state.user = None
-
-# 3. ЭКРАН ВХОДА И РЕГИСТРАЦИИ
-if not st.session_state.auth:
-    _, col, _ = st.columns([1, 1.2, 1])
-    with col:
-        st.markdown("<h1 style='text-align: center;'>🏙️ FINANCE PRO</h1>", unsafe_allow_html=True)
-        t = st.tabs(["🔐 ВХІД", "📝 РЕЄСТРАЦІЯ"])
-        with t[0]:
-            with st.form("login"):
-                u = st.text_input("Логін").lower().strip()
-                p = st.text_input("Пароль", type="password")
-                if st.form_submit_button("УВІЙТИ"):
-                    if any(x['login'] == u and str(x['password']) == str(p) for x in get_users()):
-                        st.session_state.auth = True
-                        st.session_state.user = u
-                        st.rerun()
-                    else:
-                        st.error("Помилка входу")
-        with t[1]:
-            with st.form("reg"):
-                ru = st.text_input("Новий логін")
-                rp = st.text_input("Новий пароль", type="password")
-                if st.form_submit_button("СТВОРИТИ"):
-                    if ru and rp:
-                        if save_user(ru.lower().strip(), rp):
-                            st.success("ОК! Можна входити.")
-                        else:
-                            st.error("Логін зайнятий")
-                    else:
-                        st.warning("Заповніть поля")
-    st.stop()
-
-# 4. РАБОТА С ДАННЫМИ ВИТРАТ 📊
-FILE = f"expenses_{st.session_state.user}.csv"
-if 'df' not in st.session_state:
-    if os.path.exists(FILE):
-        st.session_state.df = pd.read_csv(FILE)
-    else:
-        st.session_state.df = pd.DataFrame(columns=["Дата", "Назва", "Сума", "Категорія"])
-
-with st.sidebar:
-    st.title(f"👤 {st.session_state.user.capitalize()}")
-    if st.button("🚪 ВИЙТИ"):
-        st.session_state.auth = False
-        st.rerun()
-    st.markdown("---")
-    with st.form("add", clear_on_submit=True):
-        st.subheader("➕ Додати витрату")
-        name = st.text_input("Назва")
-        price = st.number_input("Сума (₴)", min_value=0.0, step=10.0)
-        cat = st.selectbox("Категорія", ["🍏 Продукти", "🚕 Транспорт", "🏠 Житло", "💊 Аптека", "🎭 Розваги", "📱 Зв'язок", "🎁 Інше"])
-        if st.form_submit_button("ДОДАТИ"):
-            if name and price > 0:
-                new_row = pd.DataFrame({"Дата": [datetime.now().strftime("%d.%m.%Y")], "Назва": [name], "Сума": [price], "Категорія": [cat]})
-                st.session_state.df = pd.concat([st.session_state.df, new_row], ignore_index=True)
-                st.session_state.df.to_csv(FILE, index=False)
-                st.rerun()
-
-# ГЛАВНЫЙ ДЕШБОРД
-st.title("🚀 ВАШ ФІНАНСОВИЙ ДЕШБОРД")
-df = st.session_state.df
-
-if not df.empty:
-    st.metric("ЗАГАЛЬНІ ВИТРАТИ", f"{df['Сума'].sum():,.2f} ₴")
-    
-    col1, col2 = st.columns([1.5, 1])
-    
-   with col2:
-    st.subheader("📊 Аналітика")
-    fig = px.pie(
-        df, 
-        values='Сума', 
-        names='Категорія', 
-        hole=0.5,
-        color_discrete_sequence=["gold", "red", "maroon", "purple", "orange", "deepskyblue"]
-    )
-    st.plotly_chart(fig, use_container_width=True)
-        
-        with c_edit:
-            with st.popover("📝 ЗМІНИТИ"):
-                en = st.text_input("Нова назва", value=df.at[idx, 'Назва'])
-                ep = st.number_input("Нова сума", value=float(df.at[idx, 'Сума']))
-                if st.button("ЗБЕРЕГТИ ЗМІНИ"):
-                    st.session_state.df.at[idx, 'Назва'] = en
-                    st.session_state.df.at[idx, 'Сума'] = ep
-                    st.session_state.df.to_csv(FILE, index=False)
-                    st.rerun()
-        
-        with c_del:
-            if st.button("🗑️ ВИДАЛИТИ ЗАПИС"):
-                st.session_state.df = st.session_state.df.drop(idx).reset_index(drop=True)
-                st.session
-
+    st.session_state.auth
