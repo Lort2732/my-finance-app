@@ -4,93 +4,132 @@ import plotly.express as px
 import os
 from datetime import datetime
 
-# Назва файлу бази даних
-DB_FILE = "my_expenses.csv"
+# --- НАСТРОЙКА ФОНА И СТИЛЕЙ ---
+def add_bg_from_url():
+    st.markdown(
+         f"""
+         <style>
+         .stApp {{
+             background-image: url("https://images.unsplash.com/photo-1514924013411-cbf25faa35bb?q=80&w=2000&auto=format&fit=crop");
+             background-attachment: fixed;
+             background-size: cover;
+         }}
 
-# Налаштування сторінки
-st.set_page_config(page_title="Мій Бюджет", page_icon="💰", layout="wide")
+         /* Делаем основной контент полупрозрачным для красоты */
+         [data-testid="stVerticalBlock"] > div:has(div.stMetric) {{
+             background: rgba(255, 255, 255, 0.85);
+             padding: 20px;
+             border-radius: 15px;
+         }}
+         
+         /* Стиль для боковой панели */
+         [data-testid="stSidebar"] {{
+             background-color: rgba(255, 255, 255, 0.9);
+         }}
 
-# --- ФУНКЦІЇ РОБОТИ З ДАНИМИ ---
+         /* Заголовки делаем четче */
+         h1, h2, h3 {{
+             color: #1E1E1E;
+             background: rgba(255, 255, 255, 0.7);
+             padding: 10px;
+             border-radius: 10px;
+             display: inline-block;
+         }}
+         </style>
+         """,
+         unsafe_allow_stdio=False,
+         unsafe_allow_html=True
+     )
 
-def load_data():
-    """Завантаження даних із перевіркою на помилки"""
-    if os.path.exists(DB_FILE):
-        try:
-            return pd.read_csv(DB_FILE, encoding='utf-8-sig')
-        except Exception:
-            return pd.DataFrame(columns=["Дата", "Назва", "Сума", "Категорія"])
-    return pd.DataFrame(columns=["Дата", "Назва", "Сума", "Категорія"])
+st.set_page_config(page_title="City Budget Tracker", page_icon="🏙️", layout="wide")
+add_bg_from_url()
 
-def save_data(df):
-    """Збереження даних із обробкою помилки доступу"""
-    try:
-        df.to_csv(DB_FILE, index=False, encoding='utf-8-sig')
-        return True
-    except PermissionError:
-        st.error("❌ Помилка: Закрийте файл 'my_expenses.csv' в Excel!")
-        return False
+# --- БЛОК РАБОТЫ С ПОЛЬЗОВАТЕЛЯМИ (из прошлого кода) ---
+USER_DB = "users_credentials.csv"
 
-# --- ІНІЦІАЛІЗАЦІЯ ---
-if 'expenses_df' not in st.session_state:
-    st.session_state.expenses_df = load_data()
+def load_users():
+    if os.path.exists(USER_DB):
+        return pd.read_csv(USER_DB).to_dict('records')
+    return []
 
-# --- ШАПКА ---
-st.title("💰 Особистий трекер витрат")
-st.markdown("---")
+def save_user(login, password):
+    users = load_users()
+    if any(u['login'] == login for u in users): return False
+    users.append({'login': login, 'password': password})
+    pd.DataFrame(users).to_csv(USER_DB, index=False)
+    return True
 
-# --- ЛІВА ПАНЕЛЬ ---
-with st.sidebar:
-    st.header("Додати операцію")
-    with st.form("add_form", clear_on_submit=True):
-        item = st.text_input("Що купили?")
-        price = st.number_input("Скільки коштує (грн)", min_value=0.0, step=10.0)
-        category = st.selectbox("Категорія", ["Їжа", "Транспорт", "Житло", "Розваги", "Зв'язок", "Інше"])
-        submit = st.form_submit_button("Додати")
+def check_login(login, password):
+    users = load_users()
+    return any(u['login'] == login and str(u['password']) == str(password) for u in users)
 
-    if submit:
-        if item and price > 0:
-            new_row = pd.DataFrame({
-                "Дата": [datetime.now().strftime("%d.%m.%Y")],
-                "Назва": [item],
-                "Сума": [price],
-                "Категорія": [category]
-            })
-            
-            temp_df = pd.concat([st.session_state.expenses_df, new_row], ignore_index=True)
-            
-            if save_data(temp_df):
-                st.session_state.expenses_df = temp_df
-                st.success("✅ Збережено!")
-                st.rerun()
-        else:
-            st.warning("Введіть назву та суму!")
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+    st.session_state.user_login = None
 
-# --- ГОЛОВНИЙ ЕКРАН ---
-df = st.session_state.expenses_df
-
-if not df.empty:
-    # Розрахунок загальної суми
-    total_sum = df["Сума"].sum()
-    st.metric(label="Всього витрачено", value=f"{total_sum:,.2f} грн")
+# --- ЭКРАН ВХОДА ---
+if not st.session_state.authenticated:
+    st.title("🏙️ Мій Бюджет у Великому Місті")
+    tab1, tab2 = st.tabs(["🔑 Вхід", "📝 Реєстрація"])
     
-    col1, col2 = st.columns([1.5, 1])
+    with tab1:
+        with st.form("login_form"):
+            l_login = st.text_input("Логін").strip().lower()
+            l_pass = st.text_input("Пароль", type="password")
+            if st.form_submit_button("Увійти"):
+                if check_login(l_login, l_pass):
+                    st.session_state.authenticated = True
+                    st.session_state.user_login = l_login
+                    st.rerun()
+                else: st.error("Помилка входу")
+                    
+    with tab2:
+        with st.form("reg_form"):
+            r_login = st.text_input("Новий логін").strip().lower()
+            r_pass = st.text_input("Новий пароль", type="password")
+            if st.form_submit_button("Створити кабінет"):
+                if r_login and r_pass:
+                    if save_user(r_login, r_pass): st.success("Готово! Тепер увійдіть.")
+                    else: st.error("Логін зайнятий")
+    st.stop()
 
-    with col1:
-        st.subheader("📋 Історія витрат")
+# --- РАБОТА С ДАННЫМИ ---
+USER_FILE = f"expenses_{st.session_state.user_login}.csv"
+if 'df' not in st.session_state:
+    if os.path.exists(USER_FILE):
+        st.session_state.df = pd.read_csv(USER_FILE, encoding='utf-8-sig')
+    else:
+        st.session_state.df = pd.DataFrame(columns=["Дата", "Назва", "Сума", "Категорія"])
+
+# --- ИНТЕРФЕЙС ПОСЛЕ ВХОДА ---
+st.sidebar.markdown(f"### 👤 {st.session_state.user_login.capitalize()}")
+if st.sidebar.button("Вийти"):
+    st.session_state.authenticated = False
+    st.rerun()
+
+st.title(f"📊 Витрати: {st.session_state.user_login.capitalize()}")
+
+with st.sidebar:
+    with st.form("add_exp", clear_on_submit=True):
+        st.write("🛒 **Додати покупку**")
+        item = st.text_input("Що купили?")
+        price = st.number_input("Сума (грн)", min_value=0.0)
+        cat = st.selectbox("Категорія", ["🍏 Продукти", "🚕 Транспорт", "🏠 Житло", "💊 Аптека", "🎭 Розваги", "📱 Зв'язок", "🎁 Інше"])
+        if st.form_submit_button("Додати"):
+            new_row = pd.DataFrame({"Дата": [datetime.now().strftime("%d.%m.%Y")], "Назва": [item], "Сума": [price], "Категорія": [cat]})
+            st.session_state.df = pd.concat([st.session_state.df, new_row], ignore_index=True)
+            st.session_state.df.to_csv(USER_FILE, index=False, encoding='utf-8-sig')
+            st.rerun()
+
+# Метрики и Графики
+df = st.session_state.df
+if not df.empty:
+    st.metric("Загальний підсумок", f"{df['Сума'].sum():,.2f} грн")
+    c1, c2 = st.columns([1.5, 1])
+    with c1:
         st.dataframe(df, use_container_width=True, hide_index=True)
-        
-        if st.button("🗑️ Очистити все"):
-            if save_data(pd.DataFrame(columns=["Дата", "Назва", "Сума", "Категорія"])):
-                if os.path.exists(DB_FILE):
-                    os.remove(DB_FILE)
-                st.session_state.expenses_df = pd.DataFrame(columns=["Дата", "Назва", "Сума", "Категорія"])
-                st.rerun()
-
-    with col2:
-        st.subheader("📊 Аналітика")
-        # Тут була помилка в назві колонки (Suмa -> Сума)
-        fig = px.pie(df, values='Сума', names='Категорія', hole=0.4, 
-                     color_discrete_sequence=px.colors.qualitative.Pastel)
+    with c2:
+        fig = px.pie(df, values='Сума', names='Категорія', hole=0.4, title="Розподіл витрат")
         st.plotly_chart(fig, use_container_width=True)
 else:
-    st.info("Ваша база даних порожня.")
+    st.info("Ваш міський щоденник порожній. Час додати першу витрату!")
