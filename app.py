@@ -37,7 +37,7 @@ def apply_style():
         </style>
         """, unsafe_allow_html=True)
 
-st.set_page_config(page_title="Finance Neon", layout="wide")
+st.set_page_config(page_title="Finance Neon Pro", layout="wide")
 apply_style()
 
 # 2. РАБОТА С ЮЗЕРАМИ
@@ -75,11 +75,11 @@ if not st.session_state.auth:
                         st.session_state.user = u
                         st.rerun()
                     else:
-                        st.error("Помилка")
+                        st.error("Помилка входу")
         with t[1]:
             with st.form("reg"):
-                ru = st.text_input("Логін")
-                rp = st.text_input("Пароль", type="password")
+                ru = st.text_input("Новий логін")
+                rp = st.text_input("Новий пароль", type="password")
                 if st.form_submit_button("СТВОРИТИ"):
                     if ru and rp:
                         if save_user(ru.lower().strip(), rp):
@@ -99,39 +99,72 @@ if 'df' not in st.session_state:
         st.session_state.df = pd.DataFrame(columns=["Дата", "Назва", "Сума", "Категорія"])
 
 with st.sidebar:
-    st.title(f"👤 {st.session_state.user}")
-    if st.button("ВИЙТИ"):
+    st.title(f"👤 {st.session_state.user.capitalize()}")
+    if st.button("🚪 ВИЙТИ"):
         st.session_state.auth = False
         st.rerun()
-    with st.form("add"):
+    st.markdown("---")
+    with st.form("add", clear_on_submit=True):
+        st.subheader("➕ Додати")
         name = st.text_input("Назва")
-        price = st.number_input("Сума", min_value=0.0)
-        cat = st.selectbox("Категорія", ["🍏 Продукти", "🚕 Транспорт", "🏠 Житло", "💊 Аптека", "🎭 Розваги", "🎁 Інше"])
+        price = st.number_input("Сума (₴)", min_value=0.0, step=10.0)
+        cat = st.selectbox("Категорія", ["🍏 Продукти", "🚕 Транспорт", "🏠 Житло", "💊 Аптека", "🎭 Розваги", "📱 Зв'язок", "🎁 Інше"])
         if st.form_submit_button("ДОДАТИ"):
-            new = pd.DataFrame({"Дата": [datetime.now().strftime("%d.%m.%Y")], "Назва": [name], "Сума": [price], "Категорія": [cat]})
-            st.session_state.df = pd.concat([st.session_state.df, new], ignore_index=True)
-            st.session_state.df.to_csv(FILE, index=False)
-            st.rerun()
+            if name and price > 0:
+                new = pd.DataFrame({"Дата": [datetime.now().strftime("%d.%m.%Y")], "Назва": [name], "Сума": [price], "Категорія": [cat]})
+                st.session_state.df = pd.concat([st.session_state.df, new], ignore_index=True)
+                st.session_state.df.to_csv(FILE, index=False)
+                st.rerun()
 
-st.title("🚀 ДЕШБОРД ВИТРАТ")
+st.title("🚀 ВАШ ФІНАНСОВИЙ ДЕШБОРД")
 df = st.session_state.df
+
 if not df.empty:
-    st.metric("РАЗОМ", f"{df['Сума'].sum()} ₴")
-    c1, c2 = st.columns([1.5, 1])
-    with c1:
-        st.dataframe(df, use_container_width=True)
-        idx = st.selectbox("Обрати рядок", df.index)
-        col_edit, col_del = st.columns(2)
-        with col_edit:
+    st.metric("ЗАГАЛЬНІ ВИТРАТИ", f"{df['Сума'].sum():,.2f} ₴")
+    
+    col1, col2 = st.columns([1.5, 1])
+    
+    with col1:
+        st.subheader("📋 Журнал витрат")
+        st.dataframe(df, use_container_width=True, hide_index=False)
+        
+        # Инструменты управления
+        st.markdown("---")
+        idx = st.selectbox("Оберіть рядок для редагування/видалення", df.index)
+        
+        c_edit, c_del = st.columns(2)
+        with c_edit:
             with st.popover("📝 ЗМІНИТИ"):
                 en = st.text_input("Нова назва", value=df.at[idx, 'Назва'])
                 ep = st.number_input("Нова сума", value=float(df.at[idx, 'Сума']))
-                if st.button("ЗБЕРЕГТИ"):
+                if st.button("ЗБЕРЕГТИ ЗМІНИ"):
                     st.session_state.df.at[idx, 'Назва'] = en
                     st.session_state.df.at[idx, 'Сума'] = ep
                     st.session_state.df.to_csv(FILE, index=False)
                     st.rerun()
-        with col_del:
-            if st.button("🗑️ ВИДАЛИТИ"):
+        with c_del:
+            if st.button("🗑️ ВИДАЛИТИ ЗАПИС"):
                 st.session_state.df = st.session_state.df.drop(idx).reset_index(drop=True)
-                st.session
+                st.session_state.df.to_csv(FILE, index=False)
+                st.rerun()
+
+    with col2:
+        st.subheader("📊 Аналітика")
+        # Создаем график
+        fig = px.pie(
+            df, 
+            values='Сума', 
+            names='Категорія', 
+            hole=0.5,
+            color_discrete_sequence=px.colors.sequential.Greens_r
+        )
+        fig.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font_color="white",
+            showlegend=True,
+            margin=dict(t=30, b=0, l=0, r=0)
+        )
+        st.plotly_chart(fig, use_container_width=True)
+else:
+    st.info("Додайте свою першу витрату в боковому меню зліва 👈")
