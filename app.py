@@ -4,7 +4,7 @@ import plotly.express as px
 import os
 from datetime import datetime
 
-# 1. ГЛАВНЫЙ СТИЛЬ (NEON GREEN)
+# 1. ОФОРМЛЕНИЕ И СТИЛИ 🎨
 def apply_style():
     st.markdown("""
         <style>
@@ -40,7 +40,7 @@ def apply_style():
 st.set_page_config(page_title="Finance Neon Pro", layout="wide")
 apply_style()
 
-# 2. РАБОТА С ЮЗЕРАМИ
+# 2. УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ 🔐
 USER_DB = "users_credentials.csv"
 def get_users():
     if os.path.exists(USER_DB):
@@ -59,7 +59,7 @@ if 'auth' not in st.session_state:
     st.session_state.auth = False
     st.session_state.user = None
 
-# 3. ЛОГИН И РЕГИСТРАЦИЯ
+# 3. ЭКРАН ВХОДА И РЕГИСТРАЦИИ
 if not st.session_state.auth:
     _, col, _ = st.columns([1, 1.2, 1])
     with col:
@@ -90,7 +90,7 @@ if not st.session_state.auth:
                         st.warning("Заповніть поля")
     st.stop()
 
-# 4. ДАННЫЕ И ИНТЕРФЕЙС
+# 4. РАБОТА С ДАННЫМИ ВИТРАТ 📊
 FILE = f"expenses_{st.session_state.user}.csv"
 if 'df' not in st.session_state:
     if os.path.exists(FILE):
@@ -105,17 +105,18 @@ with st.sidebar:
         st.rerun()
     st.markdown("---")
     with st.form("add", clear_on_submit=True):
-        st.subheader("➕ Додати")
+        st.subheader("➕ Додати витрату")
         name = st.text_input("Назва")
         price = st.number_input("Сума (₴)", min_value=0.0, step=10.0)
         cat = st.selectbox("Категорія", ["🍏 Продукти", "🚕 Транспорт", "🏠 Житло", "💊 Аптека", "🎭 Розваги", "📱 Зв'язок", "🎁 Інше"])
         if st.form_submit_button("ДОДАТИ"):
             if name and price > 0:
-                new = pd.DataFrame({"Дата": [datetime.now().strftime("%d.%m.%Y")], "Назва": [name], "Сума": [price], "Категорія": [cat]})
-                st.session_state.df = pd.concat([st.session_state.df, new], ignore_index=True)
+                new_row = pd.DataFrame({"Дата": [datetime.now().strftime("%d.%m.%Y")], "Назва": [name], "Сума": [price], "Категорія": [cat]})
+                st.session_state.df = pd.concat([st.session_state.df, new_row], ignore_index=True)
                 st.session_state.df.to_csv(FILE, index=False)
                 st.rerun()
 
+# ГЛАВНЫЙ ДЕШБОРД
 st.title("🚀 ВАШ ФІНАНСОВИЙ ДЕШБОРД")
 df = st.session_state.df
 
@@ -126,13 +127,12 @@ if not df.empty:
     
     with col1:
         st.subheader("📋 Журнал витрат")
-        st.dataframe(df, use_container_width=True, hide_index=False)
+        st.dataframe(df, use_container_width=True)
         
-        # Инструменты управления
         st.markdown("---")
-        idx = st.selectbox("Оберіть рядок для редагування/видалення", df.index)
-        
+        idx = st.selectbox("Оберіть рядок для дій", df.index)
         c_edit, c_del = st.columns(2)
+        
         with c_edit:
             with st.popover("📝 ЗМІНИТИ"):
                 en = st.text_input("Нова назва", value=df.at[idx, 'Назва'])
@@ -142,29 +142,8 @@ if not df.empty:
                     st.session_state.df.at[idx, 'Сума'] = ep
                     st.session_state.df.to_csv(FILE, index=False)
                     st.rerun()
+        
         with c_del:
             if st.button("🗑️ ВИДАЛИТИ ЗАПИС"):
                 st.session_state.df = st.session_state.df.drop(idx).reset_index(drop=True)
-                st.session_state.df.to_csv(FILE, index=False)
-                st.rerun()
-
-    with col2:
-        st.subheader("📊 Аналітика")
-        # Создаем график
-        fig = px.pie(
-            df, 
-            values='Сума', 
-            names='Категорія', 
-            hole=0.5,
-            color_discrete_sequence=px.colors.sequential.Greens_r
-        )
-        fig.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font_color="white",
-            showlegend=True,
-            margin=dict(t=30, b=0, l=0, r=0)
-        )
-        st.plotly_chart(fig, use_container_width=True)
-else:
-    st.info("Додайте свою першу витрату в боковому меню зліва 👈")
+                st.session
