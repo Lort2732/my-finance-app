@@ -148,15 +148,16 @@ if not df.empty:
                 st.session_state.df.to_csv(FILE, index=False)
                 st.rerun()
 
-    with col2:
+   with col2:
         st.subheader("📊 Аналітика")
-        # Создаем график
+        # Создаем график с твоей цветовой схемой
         fig = px.pie(
             df, 
             values='Сума', 
             names='Категорія', 
             hole=0.5,
-            color_discrete_sequence=px.colors.sequential.Greens_r
+            # Список цветов: Желтый, Красный, Бордовый, Фиолетовый, Оранжевый, Голубой
+            color_discrete_sequence=["gold", "red", "maroon", "purple", "orange", "deepskyblue"]
         )
         fig.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',
@@ -168,3 +169,4 @@ if not df.empty:
         st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("Додайте свою першу витрату в боковому меню зліва 👈")
+
