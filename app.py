@@ -125,13 +125,16 @@ if not df.empty:
     
     col1, col2 = st.columns([1.5, 1])
     
-    with col1:
-        st.subheader("📋 Журнал витрат")
-        st.dataframe(df, use_container_width=True)
-        
-        st.markdown("---")
-        idx = st.selectbox("Оберіть рядок для дій", df.index)
-        c_edit, c_del = st.columns(2)
+   with col2:
+    st.subheader("📊 Аналітика")
+    fig = px.pie(
+        df, 
+        values='Сума', 
+        names='Категорія', 
+        hole=0.5,
+        color_discrete_sequence=["gold", "red", "maroon", "purple", "orange", "deepskyblue"]
+    )
+    st.plotly_chart(fig, use_container_width=True)
         
         with c_edit:
             with st.popover("📝 ЗМІНИТИ"):
@@ -147,3 +150,4 @@ if not df.empty:
             if st.button("🗑️ ВИДАЛИТИ ЗАПИС"):
                 st.session_state.df = st.session_state.df.drop(idx).reset_index(drop=True)
                 st.session
+
